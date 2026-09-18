@@ -1,2 +1,0 @@
-# Onurraiii
-Ai
