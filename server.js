@@ -6,8 +6,14 @@ const app = express();
 app.use(express.json());
 app.use(express.static("public"));
 
+const apiKey = process.env.GEMINI_API_KEY;
+
+if (!apiKey) {
+  console.error("GEMINI_API_KEY bulunamadı.");
+}
+
 const ai = new GoogleGenAI({
-  apiKey: process.env.GEMINI_API_KEY
+  apiKey: apiKey
 });
 
 app.post("/api/chat", async (req, res) => {
@@ -26,14 +32,14 @@ app.post("/api/chat", async (req, res) => {
     });
 
     res.json({
-      reply: response.text || ""
+      reply: response.text
     });
 
   } catch (error) {
-    console.error(error);
+    console.error("GEMINI HATASI:", error);
 
     res.status(500).json({
-      error: "Gemini bağlantısında hata oluştu."
+      error: error.message || "Gemini bağlantı hatası."
     });
   }
 });
