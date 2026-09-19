@@ -4,16 +4,26 @@ const { GoogleGenAI } = require("@google/genai");
 const app = express();
 
 app.use(express.json());
-app.use(express.static("public"));
-
-const apiKey = process.env.GEMINI_API_KEY;
-
-if (!apiKey) {
-  console.error("GEMINI_API_KEY bulunamadı.");
-}
 
 const ai = new GoogleGenAI({
-  apiKey: apiKey
+  apiKey: process.env.GEMINI_API_KEY
+});
+
+app.use((req, res, next) => {
+  res.setHeader("Access-Control-Allow-Origin", "*");
+  res.setHeader("Access-Control-Allow-Methods", "GET, POST, OPTIONS");
+  res.setHeader("Access-Control-Allow-Headers", "Content-Type");
+  next();
+});
+
+app.get("/", (req, res) => {
+  res.json({
+    status: "online"
+  });
+});
+
+app.options("/api/chat", (req, res) => {
+  res.sendStatus(204);
 });
 
 app.post("/api/chat", async (req, res) => {
@@ -26,9 +36,16 @@ app.post("/api/chat", async (req, res) => {
       });
     }
 
+    let prompt = message;
+
+    if (message.toLocaleLowerCase("tr-TR") === "selam") {
+      prompt =
+        "Kullanıcı selam dedi. Tam olarak şu cevabı ver: Merhaba ben Onur AI, yardıma ihtiyacın varsa hazırım.";
+    }
+
     const response = await ai.models.generateContent({
       model: "gemini-2.5-flash",
-      contents: message
+      contents: prompt
     });
 
     res.json({
@@ -36,10 +53,10 @@ app.post("/api/chat", async (req, res) => {
     });
 
   } catch (error) {
-    console.error("GEMINI HATASI:", error);
+    console.error(error);
 
     res.status(500).json({
-      error: error.message || "Gemini bağlantı hatası."
+      error: "Gemini API bağlantısı başarısız."
     });
   }
 });
@@ -47,5 +64,5 @@ app.post("/api/chat", async (req, res) => {
 const PORT = process.env.PORT || 3000;
 
 app.listen(PORT, "0.0.0.0", () => {
-  console.log("Onur AI çalışıyor.");
+  console.log("Onur AI server çalışıyor.");
 });
