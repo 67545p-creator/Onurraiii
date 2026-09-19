@@ -10,7 +10,8 @@
       box-sizing: border-box;
     }
 
-    html, body {
+    html,
+    body {
       margin: 0;
       width: 100%;
       height: 100%;
@@ -89,6 +90,10 @@
       font-size: 16px;
     }
 
+    #messageInput::placeholder {
+      color: #9ca3af;
+    }
+
     #sendButton {
       height: 48px;
       padding: 0 18px;
@@ -153,7 +158,7 @@
 
       try {
         const response = await fetch(
-          "https://onur-ai-server-1.onrender.com/api/chat",
+          "https://onurraiii-4.onrender.com/api/chat",
           {
             method: "POST",
             headers: {
@@ -196,4 +201,4 @@
   </script>
 
 </body>
-  </html>
+</html>
