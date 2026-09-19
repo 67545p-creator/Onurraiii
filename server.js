@@ -36,16 +36,9 @@ app.post("/api/chat", async (req, res) => {
       });
     }
 
-    let prompt = message;
-
-    if (message.toLocaleLowerCase("tr-TR") === "selam") {
-      prompt =
-        "Kullanıcı selam dedi. Tam olarak şu cevabı ver: Merhaba ben Onur AI, yardıma ihtiyacın varsa hazırım.";
-    }
-
     const response = await ai.models.generateContent({
-      model: "gemini-2.5-flash",
-      contents: prompt
+      model: "gemini-3.5-flash-lite",
+      contents: message
     });
 
     res.json({
