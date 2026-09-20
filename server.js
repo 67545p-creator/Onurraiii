@@ -1,15 +1,17 @@
 const express = require("express");
 const path = require("path");
 const { InferenceClient } = require("@huggingface/inference");
+const { webSearch } = require("./web-search");
 
 const app = express();
 
 app.use(express.json({ limit: "20kb" }));
 app.use(express.static(path.join(__dirname, "public")));
 
-const hf = new InferenceClient(process.env.HF_TOKEN);
-
+const HF_TOKEN = process.env.HF_TOKEN;
 const MODEL = "openai/gpt-oss-20b";
+
+const hf = new InferenceClient(HF_TOKEN);
 
 app.get("/", (req, res) => {
   res.sendFile(path.join(__dirname, "public", "index.html"));
@@ -19,7 +21,8 @@ app.get("/health", (req, res) => {
   res.json({
     status: "online",
     name: "Onur AI",
-    model: MODEL
+    model: MODEL,
+    webSearch: "DuckDuckGo"
   });
 });
 
@@ -33,10 +36,31 @@ app.post("/api/chat", async (req, res) => {
       });
     }
 
-    if (!process.env.HF_TOKEN) {
+    if (!HF_TOKEN) {
       return res.status(500).json({
         error: "HF_TOKEN bulunamadı."
       });
+    }
+
+    let webResults = [];
+
+    try {
+      webResults = await webSearch(message);
+    } catch (error) {
+      console.error("WEB ARAMA HATASI:", error.message);
+    }
+
+    let webContext = "";
+
+    if (webResults.length > 0) {
+      webContext =
+        "\n\nİnternetten bulunan sonuçlar:\n" +
+        webResults
+          .map(
+            (result, index) =>
+              `${index + 1}. ${result.title}\n${result.url}`
+          )
+          .join("\n");
     }
 
     const response = await hf.chatCompletion({
@@ -45,11 +69,11 @@ app.post("/api/chat", async (req, res) => {
         {
           role: "system",
           content:
-            "Sen Onur AI'sın. Türkçe konuş. Kullanıcının sorusunu anlayıp doğru, açık ve yardımcı cevaplar ver. Gereksiz yere kısa cevap verme."
+            "Sen Onur AI'sın. Türkçe konuş. Kullanıcının sorusunu anlayıp açık, doğru ve yardımcı cevaplar ver. Sana internet arama sonuçları verilirse bunları güncel bilgi için kullan. Sonuçlarda bilgi yoksa bunu uydurma."
         },
         {
           role: "user",
-          content: message
+          content: message + webContext
         }
       ],
       max_tokens: 1024,
@@ -64,10 +88,13 @@ app.post("/api/chat", async (req, res) => {
       });
     }
 
-    res.json({ reply });
+    res.json({
+      reply,
+      webResults
+    });
 
   } catch (error) {
-    console.error("AI HATASI:", error);
+    console.error("ONUR AI HATASI:", error);
 
     res.status(500).json({
       error: "Onur AI cevap oluşturamadı."
