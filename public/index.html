@@ -23,19 +23,38 @@
       color: white;
       display: flex;
       flex-direction: column;
+      overflow: hidden;
     }
 
     header {
-      width: 100%;
       height: 64px;
-      display: flex;
-      align-items: center;
-      justify-content: center;
       background: #171a23;
       border-bottom: 1px solid #292d38;
-      font-size: 23px;
-      font-weight: bold;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      padding: 0 14px;
       flex-shrink: 0;
+    }
+
+    #menuButton {
+      width: 44px;
+      height: 44px;
+      border: none;
+      border-radius: 10px;
+      background: transparent;
+      color: white;
+      font-size: 27px;
+      cursor: pointer;
+    }
+
+    #menuButton:active {
+      background: #242936;
+    }
+
+    .logo {
+      font-size: 22px;
+      font-weight: bold;
     }
 
     #chat {
@@ -48,11 +67,12 @@
     }
 
     .message {
-      max-width: 80%;
+      max-width: 85%;
       padding: 12px 15px;
       border-radius: 15px;
       white-space: pre-wrap;
       overflow-wrap: break-word;
+      line-height: 1.5;
     }
 
     .user {
@@ -68,13 +88,11 @@
     }
 
     #inputArea {
-      width: 100%;
       display: flex;
       gap: 8px;
       padding: 10px;
       background: #171a23;
       border-top: 1px solid #292d38;
-      flex-shrink: 0;
     }
 
     #messageInput {
@@ -105,12 +123,132 @@
       opacity: 0.5;
       cursor: default;
     }
+
+    #overlay {
+      position: fixed;
+      inset: 0;
+      background: rgba(0, 0, 0, 0.45);
+      display: none;
+      z-index: 20;
+    }
+
+    #overlay.active {
+      display: block;
+    }
+
+    #sidebar {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 285px;
+      height: 100%;
+      background: #171a23;
+      border-right: 1px solid #292d38;
+      transform: translateX(-100%);
+      transition: transform 0.25s ease;
+      z-index: 30;
+      display: flex;
+      flex-direction: column;
+    }
+
+    #sidebar.open {
+      transform: translateX(0);
+    }
+
+    .sidebarTop {
+      height: 64px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0 12px;
+      border-bottom: 1px solid #292d38;
+      flex-shrink: 0;
+    }
+
+    .sidebarTitle {
+      font-size: 20px;
+      font-weight: bold;
+    }
+
+    #closeButton {
+      width: 42px;
+      height: 42px;
+      border: none;
+      border-radius: 10px;
+      background: transparent;
+      color: white;
+      font-size: 25px;
+      cursor: pointer;
+    }
+
+    #closeButton:active {
+      background: #242936;
+    }
+
+    #newChatButton {
+      margin: 14px;
+      height: 48px;
+      border: none;
+      border-radius: 11px;
+      background: #2563eb;
+      color: white;
+      font-size: 16px;
+      cursor: pointer;
+    }
+
+    #newChatButton:active {
+      transform: scale(0.98);
+    }
+
+    #chatList {
+      flex: 1;
+      overflow-y: auto;
+      padding: 0 10px 15px;
+    }
+
+    .chatItem {
+      width: 100%;
+      min-height: 46px;
+      border: none;
+      border-radius: 10px;
+      background: transparent;
+      color: white;
+      text-align: left;
+      padding: 12px;
+      margin-bottom: 4px;
+      cursor: pointer;
+      overflow: hidden;
+      white-space: nowrap;
+      text-overflow: ellipsis;
+      font-size: 14px;
+    }
+
+    .chatItem:hover {
+      background: #242936;
+    }
+
+    .emptyChats {
+      color: #8f96a8;
+      text-align: center;
+      padding: 20px 10px;
+      font-size: 14px;
+    }
+
+    @media (max-width: 500px) {
+      #sidebar {
+        width: 82%;
+        max-width: 300px;
+      }
+    }
   </style>
 </head>
 
 <body>
 
-  <header>Onur AI</header>
+  <header>
+    <button id="menuButton" aria-label="Menüyü aç">☰</button>
+    <div class="logo">Onur AI</div>
+  </header>
 
   <div id="chat"></div>
 
@@ -119,18 +257,102 @@
       id="messageInput"
       type="text"
       autocomplete="off"
-      placeholder=""
     >
 
     <button id="sendButton">Gönder</button>
   </div>
 
+  <div id="overlay"></div>
+
+  <aside id="sidebar">
+    <div class="sidebarTop">
+      <div class="sidebarTitle">Onur AI</div>
+      <button id="closeButton" aria-label="Menüyü kapat">×</button>
+    </div>
+
+    <button id="newChatButton">＋ Yeni sohbet</button>
+
+    <div id="chatList">
+      <div class="emptyChats">Henüz sohbet yok.</div>
+    </div>
+  </aside>
+
   <script>
     const chat = document.getElementById("chat");
     const input = document.getElementById("messageInput");
-    const button = document.getElementById("sendButton");
+    const sendButton = document.getElementById("sendButton");
 
-    function addMessage(text, type) {
+    const menuButton = document.getElementById("menuButton");
+    const closeButton = document.getElementById("closeButton");
+    const sidebar = document.getElementById("sidebar");
+    const overlay = document.getElementById("overlay");
+    const newChatButton = document.getElementById("newChatButton");
+    const chatList = document.getElementById("chatList");
+
+    let chats = [];
+    let currentChat = null;
+
+    function createChat() {
+      const id = Date.now().toString() + Math.random().toString(36);
+
+      const newChat = {
+        id: id,
+        title: "Yeni sohbet",
+        messages: []
+      };
+
+      chats.unshift(newChat);
+      currentChat = newChat;
+
+      renderChatList();
+      renderMessages();
+
+      closeSidebar();
+      input.focus();
+    }
+
+    function renderChatList() {
+      chatList.innerHTML = "";
+
+      if (chats.length === 0) {
+        const empty = document.createElement("div");
+        empty.className = "emptyChats";
+        empty.textContent = "Henüz sohbet yok.";
+        chatList.appendChild(empty);
+        return;
+      }
+
+      chats.forEach((item) => {
+        const button = document.createElement("button");
+
+        button.className = "chatItem";
+        button.textContent = item.title;
+
+        button.addEventListener("click", () => {
+          currentChat = item;
+          renderMessages();
+          closeSidebar();
+        });
+
+        chatList.appendChild(button);
+      });
+    }
+
+    function renderMessages() {
+      chat.innerHTML = "";
+
+      if (!currentChat) {
+        return;
+      }
+
+      currentChat.messages.forEach((message) => {
+        addMessage(message.text, message.type, false);
+      });
+
+      chat.scrollTop = chat.scrollHeight;
+    }
+
+    function addMessage(text, type, save = true) {
       const message = document.createElement("div");
 
       message.className = "message " + type;
@@ -138,19 +360,42 @@
 
       chat.appendChild(message);
       chat.scrollTop = chat.scrollHeight;
+
+      if (save && currentChat) {
+        currentChat.messages.push({
+          text: text,
+          type: type
+        });
+
+        if (
+          currentChat.title === "Yeni sohbet" &&
+          type === "user"
+        ) {
+          currentChat.title =
+            text.length > 28
+              ? text.substring(0, 28) + "..."
+              : text;
+
+          renderChatList();
+        }
+      }
     }
 
     async function sendMessage() {
       const text = input.value.trim();
 
-      if (!text || button.disabled) {
+      if (!text || sendButton.disabled) {
         return;
+      }
+
+      if (!currentChat) {
+        createChat();
       }
 
       addMessage(text, "user");
 
       input.value = "";
-      button.disabled = true;
+      sendButton.disabled = true;
 
       try {
         const response = await fetch("/api/chat", {
@@ -166,32 +411,56 @@
         const data = await response.json();
 
         if (!response.ok) {
-          throw new Error(data.error || "Sunucu hatası");
+          throw new Error(data.error || "Sunucu hatası.");
         }
 
-        addMessage(data.reply, "ai");
+        addMessage(
+          data.reply || "Onur AI cevap vermedi.",
+          "ai"
+        );
 
       } catch (error) {
         console.error(error);
 
         addMessage(
-          "Sunucu bağlantısı başarısız.",
+          "Onur AI bağlantısında hata oluştu.",
           "ai"
         );
       }
 
-      button.disabled = false;
+      sendButton.disabled = false;
       input.focus();
     }
 
-    button.addEventListener("click", sendMessage);
+    function openSidebar() {
+      sidebar.classList.add("open");
+      overlay.classList.add("active");
+    }
+
+    function closeSidebar() {
+      sidebar.classList.remove("open");
+      overlay.classList.remove("active");
+    }
+
+    menuButton.addEventListener("click", openSidebar);
+
+    closeButton.addEventListener("click", closeSidebar);
+
+    overlay.addEventListener("click", closeSidebar);
+
+    newChatButton.addEventListener("click", createChat);
+
+    sendButton.addEventListener("click", sendMessage);
 
     input.addEventListener("keydown", function(event) {
       if (event.key === "Enter") {
         sendMessage();
       }
     });
+
+    renderChatList();
+    input.focus();
   </script>
 
 </body>
-  </html>
+</html>
