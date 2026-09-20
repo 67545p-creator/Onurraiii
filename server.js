@@ -8,7 +8,7 @@ app.use(express.json({ limit: "20kb" }));
 app.use(express.static(path.join(__dirname, "public")));
 
 const API_KEY = process.env.GEMINI_API_KEY;
-const MODEL = "gemini-3.8-flash-lite";
+const MODEL = "gemini-3.8-flash";
 
 const ai = API_KEY
   ? new GoogleGenAI({ apiKey: API_KEY })
