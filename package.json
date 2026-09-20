@@ -1,12 +1,12 @@
 {
-  "name": "onur-ai-server",
+  "name": "onur-ai",
   "version": "1.0.0",
   "main": "server.js",
   "scripts": {
     "start": "node server.js"
   },
   "dependencies": {
-    "@google/genai": "^1.0.0",
-    "express": "^5.1.0"
+    "express": "^5.1.0",
+    "@huggingface/inference": "^4.13.0"
   }
 }
