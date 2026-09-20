@@ -1,12 +1,13 @@
 {
   "name": "onur-ai",
   "version": "1.0.0",
+  "description": "Onur AI",
   "main": "server.js",
   "scripts": {
     "start": "node server.js"
   },
   "dependencies": {
-    "express": "^5.1.0",
-    "@huggingface/inference": "^4.13.0"
+    "@huggingface/inference": "^4.13.0",
+    "express": "^5.1.0"
   }
 }
