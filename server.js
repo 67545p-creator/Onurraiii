@@ -5,12 +5,11 @@ const { InferenceClient } = require("@huggingface/inference");
 const app = express();
 
 app.use(express.json({ limit: "20kb" }));
-
 app.use(express.static(path.join(__dirname, "public")));
 
 const hf = new InferenceClient(process.env.HF_TOKEN);
 
-const MODEL = "openai/gpt-oss-120b:fastest";
+const MODEL = "openai/gpt-oss-20b";
 
 app.get("/", (req, res) => {
   res.sendFile(path.join(__dirname, "public", "index.html"));
@@ -20,7 +19,7 @@ app.get("/health", (req, res) => {
   res.json({
     status: "online",
     name: "Onur AI",
-    ai: "Hugging Face"
+    model: MODEL
   });
 });
 
@@ -36,7 +35,7 @@ app.post("/api/chat", async (req, res) => {
 
     if (!process.env.HF_TOKEN) {
       return res.status(500).json({
-        error: "HF_TOKEN ayarlanmamış."
+        error: "HF_TOKEN bulunamadı."
       });
     }
 
@@ -46,7 +45,7 @@ app.post("/api/chat", async (req, res) => {
         {
           role: "system",
           content:
-            "Sen Onur AI'sın. Türkçe konuş. Kullanıcının sorusunu anlamaya çalış ve doğrudan, anlaşılır ve doğru cevap ver."
+            "Sen Onur AI'sın. Türkçe konuş. Kullanıcının sorusunu anlayıp doğru, açık ve yardımcı cevaplar ver. Gereksiz yere kısa cevap verme."
         },
         {
           role: "user",
@@ -57,25 +56,21 @@ app.post("/api/chat", async (req, res) => {
       temperature: 0.7
     });
 
-    const reply =
-      response?.choices?.[0]?.message?.content;
+    const reply = response?.choices?.[0]?.message?.content;
 
     if (!reply) {
       return res.status(502).json({
-        error: "AI cevap üretemedi."
+        error: "AI cevap üretmedi."
       });
     }
 
-    res.json({
-      reply,
-      source: "ai"
-    });
+    res.json({ reply });
 
   } catch (error) {
     console.error("AI HATASI:", error);
 
     res.status(500).json({
-      error: "Onur AI şu anda cevap oluşturamadı."
+      error: "Onur AI cevap oluşturamadı."
     });
   }
 });
@@ -83,5 +78,5 @@ app.post("/api/chat", async (req, res) => {
 const PORT = process.env.PORT || 3000;
 
 app.listen(PORT, "0.0.0.0", () => {
-  console.log(`Onur AI server çalışıyor. Port: ${PORT}`);
+  console.log(`Onur AI çalışıyor: ${PORT}`);
 });
