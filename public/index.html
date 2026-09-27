@@ -1,0 +1,610 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0,user-scalable=no">
+
+<title>Onur AI</title>
+
+<style>
+*{
+  box-sizing:border-box;
+  -webkit-tap-highlight-color:transparent;
+}
+
+html,body{
+  margin:0;
+  width:100%;
+  height:100%;
+  overflow:hidden;
+  font-family:Arial,sans-serif;
+  background:#0b0b0f;
+  color:white;
+}
+
+.app{
+  width:100%;
+  height:100%;
+  display:flex;
+  flex-direction:column;
+}
+
+.header{
+  height:58px;
+  display:flex;
+  align-items:center;
+  padding:0 15px;
+  border-bottom:1px solid #25252d;
+  background:#101016;
+}
+
+.menu{
+  width:42px;
+  height:42px;
+  border:0;
+  border-radius:10px;
+  background:transparent;
+  color:white;
+  font-size:25px;
+  cursor:pointer;
+}
+
+.logo{
+  margin-left:10px;
+  font-size:20px;
+  font-weight:bold;
+}
+
+.messages{
+  flex:1;
+  overflow-y:auto;
+  padding:18px 14px 100px;
+}
+
+.empty{
+  height:100%;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  color:#777;
+  font-size:16px;
+}
+
+.message{
+  display:flex;
+  margin:10px 0;
+}
+
+.message.user{
+  justify-content:flex-end;
+}
+
+.bubble{
+  max-width:85%;
+  padding:11px 14px;
+  border-radius:16px;
+  line-height:1.45;
+  white-space:pre-wrap;
+  word-break:break-word;
+}
+
+.user .bubble{
+  background:#2563eb;
+}
+
+.ai .bubble{
+  background:#19191f;
+}
+
+.image{
+  display:block;
+  max-width:100%;
+  border-radius:14px;
+  margin-top:4px;
+}
+
+.generating{
+  display:flex;
+  align-items:center;
+  gap:8px;
+}
+
+.dot{
+  width:7px;
+  height:7px;
+  border-radius:50%;
+  background:#aaa;
+  animation:pulse 1s infinite;
+}
+
+.dot:nth-child(2){
+  animation-delay:.15s;
+}
+
+.dot:nth-child(3){
+  animation-delay:.3s;
+}
+
+@keyframes pulse{
+  0%,100%{opacity:.25}
+  50%{opacity:1}
+}
+
+.composer{
+  position:fixed;
+  left:0;
+  right:0;
+  bottom:0;
+  padding:10px;
+  background:linear-gradient(
+    transparent,
+    #0b0b0f 25%
+  );
+}
+
+.composerBox{
+  max-width:900px;
+  margin:auto;
+  display:flex;
+  align-items:center;
+  gap:8px;
+  padding:7px;
+  border:1px solid #30303a;
+  border-radius:18px;
+  background:#15151b;
+}
+
+.plus{
+  flex:0 0 42px;
+  width:42px;
+  height:42px;
+  border:0;
+  border-radius:12px;
+  background:#24242d;
+  color:white;
+  font-size:25px;
+  cursor:pointer;
+}
+
+.input{
+  flex:1;
+  min-width:0;
+  border:0;
+  outline:0;
+  background:transparent;
+  color:white;
+  font-size:16px;
+  padding:10px 4px;
+}
+
+.send{
+  width:42px;
+  height:42px;
+  border:0;
+  border-radius:12px;
+  background:#2563eb;
+  color:white;
+  font-size:19px;
+  cursor:pointer;
+}
+
+.plusMenu{
+  position:fixed;
+  left:10px;
+  bottom:68px;
+  width:190px;
+  padding:7px;
+  border:1px solid #30303a;
+  border-radius:14px;
+  background:#18181f;
+  box-shadow:0 10px 30px #0008;
+  display:none;
+  z-index:20;
+}
+
+.plusMenu.open{
+  display:block;
+}
+
+.imageOption{
+  width:100%;
+  border:0;
+  background:transparent;
+  color:white;
+  text-align:left;
+  padding:13px;
+  border-radius:10px;
+  font-size:15px;
+  cursor:pointer;
+}
+
+.imageOption:hover{
+  background:#252530;
+}
+
+.sidebar{
+  position:fixed;
+  z-index:30;
+  top:0;
+  left:0;
+  bottom:0;
+  width:280px;
+  background:#111116;
+  border-right:1px solid #292932;
+  transform:translateX(-100%);
+  transition:.2s;
+  padding:15px;
+}
+
+.sidebar.open{
+  transform:translateX(0);
+}
+
+.sidebarTop{
+  display:flex;
+  justify-content:space-between;
+  align-items:center;
+  margin-bottom:18px;
+}
+
+.newChat{
+  width:100%;
+  padding:13px;
+  border:1px solid #30303a;
+  border-radius:12px;
+  background:#19191f;
+  color:white;
+  cursor:pointer;
+}
+
+.close{
+  border:0;
+  background:transparent;
+  color:white;
+  font-size:24px;
+  cursor:pointer;
+}
+
+@media(max-width:600px){
+  .bubble{
+    max-width:90%;
+  }
+
+  .sidebar{
+    width:85%;
+  }
+}
+</style>
+</head>
+
+<body>
+
+<div class="app">
+
+  <div class="header">
+    <button class="menu" id="menuBtn">☰</button>
+    <div class="logo">Onur AI</div>
+  </div>
+
+  <div class="messages" id="messages">
+    <div class="empty" id="empty">
+      Nasıl yardımcı olabilirim?
+    </div>
+  </div>
+
+  <div class="composer">
+
+    <div class="composerBox">
+
+      <button
+        class="plus"
+        id="plusBtn"
+        type="button"
+      >+</button>
+
+      <input
+        id="input"
+        class="input"
+        autocomplete="off"
+        placeholder="Mesaj yaz..."
+      >
+
+      <button
+        class="send"
+        id="sendBtn"
+        type="button"
+      >➤</button>
+
+    </div>
+
+  </div>
+
+</div>
+
+<div class="plusMenu" id="plusMenu">
+  <button
+    class="imageOption"
+    id="imageOption"
+  >
+    🖼️ Görsel oluştur
+  </button>
+</div>
+
+<div class="sidebar" id="sidebar">
+
+  <div class="sidebarTop">
+    <strong>Onur AI</strong>
+
+    <button
+      class="close"
+      id="closeBtn"
+    >×</button>
+  </div>
+
+  <button
+    class="newChat"
+    id="newChat"
+  >
+    ＋ Yeni sohbet
+  </button>
+
+</div>
+
+<script>
+const input = document.getElementById("input");
+const sendBtn = document.getElementById("sendBtn");
+const plusBtn = document.getElementById("plusBtn");
+const plusMenu = document.getElementById("plusMenu");
+const imageOption = document.getElementById("imageOption");
+const messages = document.getElementById("messages");
+const empty = document.getElementById("empty");
+
+const menuBtn = document.getElementById("menuBtn");
+const sidebar = document.getElementById("sidebar");
+const closeBtn = document.getElementById("closeBtn");
+
+let imageMode = false;
+
+function removeEmpty() {
+  if (empty) {
+    empty.remove();
+  }
+}
+
+function addTextMessage(text, type) {
+  removeEmpty();
+
+  const row = document.createElement("div");
+  row.className = "message " + type;
+
+  const bubble = document.createElement("div");
+  bubble.className = "bubble";
+  bubble.textContent = text;
+
+  row.appendChild(bubble);
+  messages.appendChild(row);
+
+  messages.scrollTop = messages.scrollHeight;
+
+  return row;
+}
+
+function addImageMessage(src) {
+  removeEmpty();
+
+  const row = document.createElement("div");
+  row.className = "message ai";
+
+  const bubble = document.createElement("div");
+  bubble.className = "bubble";
+
+  const img = document.createElement("img");
+  img.className = "image";
+  img.src = src;
+  img.alt = "Oluşturulan görsel";
+
+  bubble.appendChild(img);
+  row.appendChild(bubble);
+  messages.appendChild(row);
+
+  messages.scrollTop = messages.scrollHeight;
+}
+
+function addGenerating() {
+  removeEmpty();
+
+  const row = document.createElement("div");
+  row.className = "message ai";
+  row.id = "generating";
+
+  const bubble = document.createElement("div");
+  bubble.className = "bubble generating";
+
+  bubble.innerHTML =
+    "Görsel oluşturuluyor..." +
+    "<span class='dot'></span>" +
+    "<span class='dot'></span>" +
+    "<span class='dot'></span>";
+
+  row.appendChild(bubble);
+  messages.appendChild(row);
+
+  messages.scrollTop = messages.scrollHeight;
+
+  return row;
+}
+
+plusBtn.addEventListener("click", () => {
+  plusMenu.classList.toggle("open");
+});
+
+imageOption.addEventListener("click", () => {
+  imageMode = true;
+
+  input.value = "@gorselolustur ";
+  input.focus();
+
+  plusMenu.classList.remove("open");
+});
+
+async function sendMessage() {
+  const text = input.value.trim();
+
+  if (!text) return;
+
+  input.value = "";
+
+  if (
+    imageMode ||
+    text.toLowerCase().startsWith("@gorselolustur")
+  ) {
+    imageMode = false;
+
+    const prompt =
+      text
+        .replace(/^@gorselolustur/i, "")
+        .trim();
+
+    if (!prompt) {
+      addTextMessage(
+        "@gorselolustur komutundan sonra görsel açıklamasını yaz.",
+        "ai"
+      );
+      return;
+    }
+
+    addTextMessage(
+      "@gorselolustur " + prompt,
+      "user"
+    );
+
+    const loading = addGenerating();
+
+    try {
+      const response = await fetch(
+        "/api/generate-image",
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json"
+          },
+          body: JSON.stringify({
+            prompt
+          })
+        }
+      );
+
+      const data = await response.json();
+
+      loading.remove();
+
+      if (!response.ok || !data.success) {
+        addTextMessage(
+          data.error ||
+          "Görsel oluşturulamadı.",
+          "ai"
+        );
+        return;
+      }
+
+      addImageMessage(data.image);
+
+    } catch (error) {
+      loading.remove();
+
+      addTextMessage(
+        "Görsel oluşturulurken bağlantı hatası oluştu.",
+        "ai"
+      );
+    }
+
+    return;
+  }
+
+  addTextMessage(text, "user");
+
+  const loading = addTextMessage(
+    "Düşünüyor...",
+    "ai"
+  );
+
+  try {
+    const response = await fetch(
+      "/api/chat",
+      {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json"
+        },
+        body: JSON.stringify({
+          message: text
+        })
+      }
+    );
+
+    const data = await response.json();
+
+    loading.remove();
+
+    if (!response.ok) {
+      addTextMessage(
+        data.error ||
+        "Bir hata oluştu.",
+        "ai"
+      );
+      return;
+    }
+
+    addTextMessage(
+      data.reply,
+      "ai"
+    );
+
+  } catch (error) {
+    loading.remove();
+
+    addTextMessage(
+      "Sunucuya bağlanılamadı.",
+      "ai"
+    );
+  }
+}
+
+sendBtn.addEventListener(
+  "click",
+  sendMessage
+);
+
+input.addEventListener(
+  "keydown",
+  event => {
+    if (
+      event.key === "Enter" &&
+      !event.shiftKey
+    ) {
+      event.preventDefault();
+      sendMessage();
+    }
+  }
+);
+
+menuBtn.addEventListener("click", () => {
+  sidebar.classList.add("open");
+});
+
+closeBtn.addEventListener("click", () => {
+  sidebar.classList.remove("open");
+});
+
+document.addEventListener("click", event => {
+  if (
+    !plusMenu.contains(event.target) &&
+    event.target !== plusBtn
+  ) {
+    plusMenu.classList.remove("open");
+  }
+});
+</script>
+
+</body>
+  </html>
